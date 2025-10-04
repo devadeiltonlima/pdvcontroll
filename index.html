@@ -453,12 +453,13 @@
                 <div class="config-layout">
                     <form id="configuracoes-form" class="form-card" novalidate>
                         <div class="form-row">
+                            <h3 id="mensagem-liberacao-pdv" style="display: none;">Informe o nome da empresa para liberar o PDV.</h3>
                             <label for="config-nome">Nome da empresa *</label>
                             <input type="text" id="config-nome" required placeholder="Ex: Mercadinho Sao Joao" autocomplete="organization">
                         </div>
                         <div class="form-row">
                             <label for="config-documento">CNPJ ou CPF (opcional)</label>
-                            <input type="text" id="config-documento" placeholder="00.000.000/0001-00 ou 000.000.000-00" autocomplete="off">
+                            <input type="text" id="config-documento" placeholder="00.000.000/0001-00 ou 000.000.000-0" autocomplete="off">
                         </div>
                         <div class="form-row">
                             <label for="config-endereco">Endereco (opcional)</label>
@@ -493,4 +494,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-

@@ -720,6 +720,12 @@
     function atualizarEstadoConfiguracao() {
         const configurada = empresaConfigurada();
 
+        // Mostrar/ocultar mensagem de liberação do PDV
+        const mensagemLiberacao = document.getElementById('mensagem-liberacao-pdv');
+        if (mensagemLiberacao) {
+            mensagemLiberacao.style.display = configurada ? 'none' : 'block';
+        }
+
         elements.navLinks.forEach(btn => {
             const isConfiguracoes = btn.dataset.section === 'configuracoes';
             if (isConfiguracoes) {
