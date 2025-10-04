@@ -1,0 +1,447 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PDV Simples - Gestão de Mercadinho</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="app-header">
+            <div class="brand">
+                <h1>PDV Control</h1>
+                <p>Controle claro e rápido para o seu mercadinho</p>
+            </div>
+            <nav class="app-nav" id="app-nav">
+                <button type="button" class="nav-link active" data-section="dashboard" id="nav-dashboard">Dashboard</button>
+                <button type="button" class="nav-link" data-section="produtos" id="nav-produtos">Produtos</button>
+                <button type="button" class="nav-link" data-section="entradas" id="nav-entradas">Entradas</button>
+                <button type="button" class="nav-link" data-section="vendas" id="nav-vendas">Vendas</button>
+                <button type="button" class="nav-link" data-section="relatorios" id="nav-relatorios">Relatórios</button>
+            </nav>
+        </header>
+        <main class="app-main">
+            <section id="dashboard" class="app-section active" aria-labelledby="nav-dashboard">
+                <header class="section-header">
+                    <h2>Resumo do dia</h2>
+                    <p>Visão instantânea do desempenho e do estoque.</p>
+                </header>
+                <div class="metrics-grid">
+                    <article class="metric-card">
+                        <h3>Vendas hoje</h3>
+                        <strong id="vendas-hoje">R$ 0,00</strong>
+                    </article>
+                    <article class="metric-card">
+                        <h3>Compras hoje</h3>
+                        <strong id="compras-hoje">R$ 0,00</strong>
+                    </article>
+                    <article class="metric-card">
+                        <h3>Saldo em caixa</h3>
+                        <strong id="saldo-caixa">R$ 0,00</strong>
+                    </article>
+                    <article class="metric-card">
+                        <h3>Itens em alerta</h3>
+                        <strong id="produtos-baixo-estoque">0</strong>
+                    </article>
+                </div>
+                <div class="quick-actions">
+                    <h3>Ações rápidas</h3>
+                    <div class="quick-actions-grid">
+                        <button type="button" class="quick-action" data-section="entradas">Registrar entrada</button>
+                        <button type="button" class="quick-action" data-section="vendas">Registrar venda</button>
+                        <button type="button" class="quick-action" data-section="produtos">Cadastrar produto</button>
+                        <button type="button" class="quick-action" data-section="relatorios">Ver relatórios</button>
+                    </div>
+                </div>
+                <div class="alert-box" id="alerta-estoque" hidden></div>
+            </section>
+            <section id="produtos" class="app-section" aria-labelledby="nav-produtos">
+                <header class="section-header">
+                    <h2>Produtos</h2>
+                    <p>Cadastre, atualize e mantenha seu catálogo organizado.</p>
+                </header>
+                <form id="produto-form" class="form-card">
+                    <div class="form-row">
+                        <label for="produto-nome">Nome do produto</label>
+                        <input type="text" id="produto-nome" autocomplete="off" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="produto-marca">Marca do produto</label>
+                        <input type="text" id="produto-marca" autocomplete="off">
+                    </div>
+                    <div class="form-row">
+                        <label for="produto-codigo">Codigo de barras</label>
+                        <input type="text" id="produto-codigo" autocomplete="off" inputmode="text" spellcheck="false" placeholder="Escaneie ou digite">
+                    </div>
+                    <div class="form-row">
+                        <label for="produto-unidade">Unidade</label>
+                        <select id="produto-unidade" required>
+                            <option value="">Selecione</option>
+                            <option value="unidade">Unidade</option>
+                            <option value="kg">Quilo</option>
+                            <option value="g">Gramas</option>
+                            <option value="litro">Litro</option>
+                            <option value="ml">Mililitro</option>
+                            <option value="pacote">Pacote</option>
+                            <option value="caixa">Caixa</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="produto-custo">Preço de custo (R$)</label>
+                        <input type="number" id="produto-custo" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="produto-venda">Preço de venda (R$)</label>
+                        <input type="number" id="produto-venda" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">Salvar produto</button>
+                        <button type="reset" class="ghost-btn" id="cancelar-edicao" hidden>Cancelar edição</button>
+                    </div>
+                    <p class="form-hint">Evite duplicar produtos. Nome + unidade precisam ser únicos.</p>
+                </form>
+                <div class="table-card">
+                    <header class="table-header">
+                        <h3>Produtos cadastrados</h3>
+                        <input type="search" id="busca-produtos" placeholder="Buscar produto..." aria-label="Buscar produto">
+                    </header>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Codigo</th>
+                                <th>Unidade</th>
+                                <th>Preço de custo</th>
+                                <th>Preço de venda</th>
+                                <th>Estoque</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="produtos-table-body"></tbody>
+                    </table>
+                    <p class="empty-state" id="produtos-empty">Cadastre o primeiro produto para começar.</p>
+                </div>
+            </section>
+            <section id="entradas" class="app-section" aria-labelledby="nav-entradas">
+                <header class="section-header">
+                    <h2>Entradas</h2>
+                    <p>Registre novas compras para manter o estoque atualizado.</p>
+                </header>
+                <form id="entrada-form" class="form-card">
+                    <div class="form-row">
+                        <label for="entrada-produto">Produto</label>
+                        <select id="entrada-produto" required></select>
+                    </div>
+                    <div class="form-row">
+                        <label for="entrada-quantidade">Quantidade</label>
+                        <input type="number" id="entrada-quantidade" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-feedback">
+                        <div>Preço de custo: <strong id="entrada-custo-unitario">R$ 0,00</strong></div>
+                        <div>Valor estimado: <strong id="entrada-valor-total">R$ 0,00</strong></div>
+                    </div>
+                    <div class="form-row">
+                        <label for="entrada-data">Data</label>
+                        <input type="date" id="entrada-data" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">Confirmar entrada</button>
+                    </div>
+                </form>
+                <div class="table-card">
+                    <header class="table-header">
+                        <h3>Histórico de entradas</h3>
+                    </header>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Produto</th>
+                                <th>Quantidade</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="entradas-table-body"></tbody>
+                    </table>
+                    <p class="empty-state" id="entradas-empty">Nenhuma entrada registrada.</p>
+                </div>
+            </section>
+            <section id="vendas" class="app-section" aria-labelledby="nav-vendas">
+                <header class="section-header">
+                    <h2>Vendas</h2>
+                    <p>Registre saídas e acompanhe o desempenho das vendas.</p>
+                </header>
+                <div class="barcode-card" aria-live="polite">
+                    <div class="barcode-card__info">
+                        <strong>Leitor de codigo de barras</strong>
+                        <p>Passe o produto no leitor ou digite o codigo manualmente e pressione Enter.</p>
+                    </div>
+                    <div class="barcode-card__input">
+                        <label for="leitor-codigo">Codigo do produto</label>
+                        <input type="text" id="leitor-codigo" placeholder="Escaneie o codigo aqui" autocomplete="off" spellcheck="false" inputmode="text">
+                    </div>
+                    <div class="barcode-card__actions">
+                        <button type="button" class="ghost-btn" id="focar-leitor">Focar leitor</button>
+                        <button type="button" class="ghost-btn" id="limpar-leitor">Limpar campo</button>
+                    </div>
+                </div>
+                <form id="venda-form" class="form-card">
+                    <div class="form-row">
+                        <label for="venda-produto">Produto</label>
+                        <select id="venda-produto" required></select>
+                    </div>
+                    <div class="form-row">
+                        <label for="venda-quantidade">Quantidade</label>
+                        <input type="number" id="venda-quantidade" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-feedback">
+                        <div>Preço de venda: <strong id="venda-preco-unitario">R$ 0,00</strong></div>
+                        <div>Valor da venda: <strong id="venda-valor-total">R$ 0,00</strong></div>
+                    </div>
+                    <div class="form-row">
+                        <label for="venda-data">Data</label>
+                        <input type="date" id="venda-data" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">Confirmar venda</button>
+                    </div>
+                </form>
+                <div class="table-card">
+                    <header class="table-header">
+                        <h3>Histórico de vendas</h3>
+                    </header>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Produto</th>
+                                <th>Quantidade</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vendas-table-body"></tbody>
+                    </table>
+                    <p class="empty-state" id="vendas-empty">Nenhuma venda registrada.</p>
+                </div>
+            </section>
+            <section id="relatorios" class="app-section" aria-labelledby="nav-relatorios">
+                <header class="section-header">
+                    <h2>Relatórios</h2>
+                    <p>Acompanhe o estoque, o caixa e as movimentações com clareza.</p>
+                </header>
+                <div class="report-tabs" role="tablist">
+                    <button type="button" class="tab-link active" data-tab="estoque">Estoque atual</button>
+                    <button type="button" class="tab-link" data-tab="movimentacao">Movimentação diária</button>
+                    <button type="button" class="tab-link" data-tab="historico">Histórico completo</button>
+                    <button type="button" class="tab-link" data-tab="estoque-detalhado">RelatÃ³rio de Estoque</button>
+                    <button type="button" class="tab-link" data-tab="backup">Backup</button>
+                </div>
+                <div class="report-panel active" id="tab-estoque" role="tabpanel">
+                    <div class="table-card">
+                        <header class="table-header">
+                            <h3>Estoque</h3>
+                            <button type="button" class="ghost-btn" id="exportar-estoque">Exportar estoque</button>
+                        </header>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Unidade</th>
+                                    <th>Quantidade</th>
+                                    <th>Valor em estoque</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="estoque-table-body"></tbody>
+                        </table>
+                        <p class="empty-state" id="estoque-empty">Nenhum produto cadastrado.</p>
+                    </div>
+                </div>
+                <div class="report-panel" id="tab-estoque-detalhado" role="tabpanel">
+                    <div class="table-card">
+                        <header class="table-header">
+                            <div class="report-header-text">
+                                <h3>Relatorio de Controle de Estoque</h3>
+                                <p class="table-subtitle">Escolha o formato desejado para gerar o documento.</p>
+                            </div>
+                        </header>
+                        <div class="report-options">
+                            <article class="report-option">
+                                <h4>Visualizacao na tela</h4>
+                                <p>Abrir o documento completo, revisar dados e imprimir quando quiser.</p>
+                                <div class="option-actions">
+                                    <button type="button" class="stock-report-btn" id="visualizar-relatorio-estoque">Abrir visualizacao</button>
+                                </div>
+                            </article>
+                            <article class="report-option">
+                                <h4>Exportar para PDF</h4>
+                                <p>Usar a impressao do navegador para gerar o PDF com layout profissional.</p>
+                                <div class="option-actions">
+                                    <button type="button" class="stock-report-btn print" id="imprimir-relatorio-estoque">Imprimir / Exportar PDF</button>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                    <div class="stock-report-overlay" id="relatorio-estoque-overlay" aria-hidden="true" inert>
+                        <div class="stock-report-dialog" role="dialog" aria-modal="true" aria-labelledby="relatorio-estoque-dialog-title">
+                            <header class="stock-report-dialog-bar">
+                                <h3 id="relatorio-estoque-dialog-title">Visualizacao do relatorio</h3>
+                                <div class="dialog-actions">
+                                    <button type="button" class="stock-report-btn print" id="imprimir-relatorio-estoque-visualizacao">Imprimir / Exportar PDF</button>
+                                    <button type="button" class="stock-report-btn close" id="fechar-relatorio-estoque">Fechar</button>
+                                </div>
+                            </header>
+                            <div class="stock-report-scroll">
+                                <div class="stock-report" id="relatorio-estoque-content" tabindex="-1">
+                                    <div class="stock-report-header">
+                                        <h2>Relatorio de Controle de Estoque</h2>
+                                        <div class="company-info">
+                                            <strong>PDV Control</strong>
+                                            <div>CNPJ: 00.000/0001-00</div>
+                                            <div>Endereco: Rua Exemplo, 123 - Cidade/UF</div>
+                                        </div>
+                                        <div class="period-info">Saldo em <span id="data-relatorio-estoque">31/03/2025</span></div>
+                                    </div>
+                                    <table class="stock-report-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Codigo</th>
+                                                <th>Descricao do Produto</th>
+                                                <th>Unidade</th>
+                                                <th>Saldo Inicial</th>
+                                                <th>Entradas</th>
+                                                <th>Saidas</th>
+                                                <th>Saldo Final</th>
+                                                <th>Custo Unitario</th>
+                                                <th>Custo Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="relatorio-estoque-body">
+                                            <tr>
+                                                <td colspan="9" class="empty-state">Nenhum produto cadastrado.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <div class="stock-report-footer">
+                                        <div class="stock-report-summary">
+                                            <h4>Resumo do Estoque</h4>
+                                            <div class="summary-item">
+                                                <span>Total de Produtos:</span>
+                                                <span id="total-produtos-relatorio">0</span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span>Valor Total do Estoque:</span>
+                                                <span id="valor-total-estoque">R$ 0,00</span>
+                                            </div>
+                                            <div class="summary-item">
+                                                <span>Lucro Bruto Estimado:</span>
+                                                <span id="lucro-bruto-estoque">R$ 0,00</span>
+                                            </div>
+                                        </div>
+                                        <div class="stock-report-signature">
+                                            <div>Local e Data: _________________________</div>
+                                            <div class="signature-line">Assinatura do Responsavel</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>                <div class="report-panel" id="tab-movimentacao" role="tabpanel">
+                    <form class="filters">
+                        <label for="data-relatorio">Selecione a data</label>
+                        <input type="date" id="data-relatorio">
+                    </form>
+                    <div class="summary-grid">
+                        <article class="summary-card">
+                            <h4>Total de entradas</h4>
+                            <strong id="total-entradas-dia">R$ 0,00</strong>
+                        </article>
+                        <article class="summary-card">
+                            <h4>Total de vendas</h4>
+                            <strong id="total-vendas-dia">R$ 0,00</strong>
+                        </article>
+                        <article class="summary-card">
+                            <h4>Saldo do caixa</h4>
+                            <strong id="saldo-dia">R$ 0,00</strong>
+                        </article>
+                        <article class="summary-card">
+                            <h4>Lucro bruto</h4>
+                            <strong id="lucro-dia">R$ 0,00</strong>
+                        </article>
+                    </div>
+                    <div class="table-card">
+                        <header class="table-header">
+                            <h3>Entradas</h3>
+                        </header>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Quantidade</th>
+                                    <th>Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="entradas-dia-list"></tbody>
+                        </table>
+                        <p class="empty-state" id="relatorio-entradas-empty">Sem entradas nesta data.</p>
+                    </div>
+                    <div class="table-card">
+                        <header class="table-header">
+                            <h3>Vendas</h3>
+                        </header>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Quantidade</th>
+                                    <th>Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vendas-dia-list"></tbody>
+                        </table>
+                        <p class="empty-state" id="relatorio-vendas-empty">Sem vendas nesta data.</p>
+                    </div>
+                </div>
+                <div class="report-panel" id="tab-historico" role="tabpanel">
+                    <div class="table-card">
+                        <header class="table-header">
+                            <h3>Movimentações</h3>
+                            <input type="date" id="filtro-historico" aria-label="Filtrar por data">
+                        </header>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th>Produto</th>
+                                    <th>Quantidade</th>
+                                    <th>Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historico-table-body"></tbody>
+                        </table>
+                        <p class="empty-state" id="historico-empty">Nenhuma movimentação registrada.</p>
+                    </div>
+                </div>
+                <div class="report-panel" id="tab-backup" role="tabpanel">
+                    <div class="backup-card">
+                        <p>Lembrete: os dados ficam apenas neste dispositivo. Faça backup com frequência.</p>
+                        <div class="backup-actions">
+                            <button type="button" class="primary-btn" id="exportar-relatorio-excel">Exportar relatório (Excel)</button>
+                            <button type="button" class="ghost-btn" id="exportar-backup-json">Exportar dados (JSON)</button>
+                            <label class="ghost-btn file-btn">
+                                Importar dados (JSON)
+                                <input type="file" id="importar-backup" accept="application/json">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div class="toast" id="toast" role="status" hidden></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
