@@ -10,8 +10,8 @@
     <div class="app">
         <header class="app-header">
             <div class="brand">
-                <h1>PDV Control</h1>
-                <p>Controle claro e rápido para o seu mercadinho</p>
+                <h1 id="nome-empresa-display">PDV Simples</h1>
+                <p id="mensagem-empresa">Controle claro e rapido para o seu mercadinho</p>
             </div>
             <nav class="app-nav" id="app-nav">
                 <button type="button" class="nav-link active" data-section="dashboard" id="nav-dashboard">Dashboard</button>
@@ -19,6 +19,8 @@
                 <button type="button" class="nav-link" data-section="entradas" id="nav-entradas">Entradas</button>
                 <button type="button" class="nav-link" data-section="vendas" id="nav-vendas">Vendas</button>
                 <button type="button" class="nav-link" data-section="relatorios" id="nav-relatorios">Relatórios</button>
+                <button type="button" class="nav-link" data-section="configuracoes" id="nav-configuracoes">Configuracoes</button>
+
             </nav>
         </header>
         <main class="app-main">
@@ -297,9 +299,10 @@
                                     <div class="stock-report-header">
                                         <h2>Relatorio de Controle de Estoque</h2>
                                         <div class="company-info">
-                                            <strong>PDV Control</strong>
-                                            <div>CNPJ: 00.000/0001-00</div>
-                                            <div>Endereco: Rua Exemplo, 123 - Cidade/UF</div>
+                                            <strong id="relatorio-empresa-nome">PDV Simples</strong>
+                                            <div id="relatorio-empresa-documento" hidden></div>
+                                            <div id="relatorio-empresa-endereco" hidden></div>
+                                            <div id="relatorio-empresa-telefone" hidden></div>
                                         </div>
                                         <div class="period-info">Saldo em <span id="data-relatorio-estoque">31/03/2025</span></div>
                                     </div>
@@ -439,9 +442,55 @@
                     </div>
                 </div>
             </section>
+            <section id="configuracoes" class="app-section" aria-labelledby="nav-configuracoes">
+                <header class="section-header">
+                    <h2>Configuracoes da empresa</h2>
+                    <p>Cadastre uma vez os dados essenciais da loja. Eles alimentam o cabecalho, relatorios e cupons.</p>
+                </header>
+                <div class="config-info">
+                    <p>Informe pelo menos o nome da empresa. Documento, endereco e telefone sao opcionais, mas deixam seus relatorios completos.</p>
+                </div>
+                <div class="config-layout">
+                    <form id="configuracoes-form" class="form-card" novalidate>
+                        <div class="form-row">
+                            <label for="config-nome">Nome da empresa *</label>
+                            <input type="text" id="config-nome" required placeholder="Ex: Mercadinho Sao Joao" autocomplete="organization">
+                        </div>
+                        <div class="form-row">
+                            <label for="config-documento">CNPJ ou CPF (opcional)</label>
+                            <input type="text" id="config-documento" placeholder="00.000.000/0001-00 ou 000.000.000-00" autocomplete="off">
+                        </div>
+                        <div class="form-row">
+                            <label for="config-endereco">Endereco (opcional)</label>
+                            <input type="text" id="config-endereco" placeholder="Rua das Flores, 123 - Centro" autocomplete="street-address">
+                        </div>
+                        <div class="form-row">
+                            <label for="config-telefone">Telefone (opcional)</label>
+                            <input type="tel" id="config-telefone" placeholder="(11) 99999-9999" autocomplete="tel">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="primary-btn" id="config-salvar">Salvar configuracoes</button>
+                            <button type="button" class="ghost-btn" id="config-voltar" disabled>Voltar ao PDV</button>
+                        </div>
+                        <p class="form-hint">Os dados ficam apenas neste computador e podem ser editados a qualquer momento.</p>
+                        <div class="form-feedback" id="config-feedback" role="status" hidden></div>
+                    </form>
+                    <aside class="config-preview" aria-live="polite">
+                        <h3>Visualizacao rapida</h3>
+                        <div class="config-preview-card" aria-live="polite">
+                            <strong id="preview-nome-empresa">PDV Simples</strong>
+                            <span id="preview-documento" class="config-preview-line" hidden></span>
+                            <span id="preview-endereco" class="config-preview-line" hidden></span>
+                            <span id="preview-telefone" class="config-preview-line" hidden></span>
+                        </div>
+                        <p class="config-preview-note">Salve para aplicar nos relatorios, cupons e cabecalho.</p>
+                    </aside>
+                </div>
+            </section>
         </main>
         <div class="toast" id="toast" role="status" hidden></div>
     </div>
     <script src="script.js"></script>
 </body>
 </html>
+

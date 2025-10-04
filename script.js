@@ -4,7 +4,8 @@
     const STORAGE_KEYS = {
         produtos: `${STORAGE_PREFIX}:produtos`,
         entradas: `${STORAGE_PREFIX}:entradas`,
-        vendas: `${STORAGE_PREFIX}:vendas`
+        vendas: `${STORAGE_PREFIX}:vendas`,
+        empresa: `${STORAGE_PREFIX}:empresa`
     };
     const ESTOQUE_ALERTA = 5;
     const OPEN_FOOD_FACTS_API_URL = 'https://world.openfoodfacts.org/api/v0/product';
@@ -15,11 +16,7 @@
     const dataFmt = new Intl.DateTimeFormat('pt-BR');
     const horaFmt = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-    const state = {
-        produtos: carregarColecao('produtos').map(normalizarProduto),
-        entradas: carregarColecao('entradas').map(normalizarEntrada),
-        vendas: carregarColecao('vendas').map(normalizarVenda)
-    };
+    let state = {};
 
     let produtoEmEdicao = null;
     let termoBuscaProdutos = '';
@@ -101,18 +98,120 @@
             exportarRelatorioExcel: document.getElementById('exportar-relatorio-excel'),
             exportarBackupJson: document.getElementById('exportar-backup-json'),
             importarBackup: document.getElementById('importar-backup')
+        },
+        configuracoes: {
+            form: document.getElementById('configuracoes-form'),
+            nome: document.getElementById('config-nome'),
+            documento: document.getElementById('config-documento'),
+            endereco: document.getElementById('config-endereco'),
+            telefone: document.getElementById('config-telefone'),
+            salvar: document.getElementById('config-salvar'),
+            voltar: document.getElementById('config-voltar'),
+            feedback: document.getElementById('config-feedback'),
+            preview: {
+                nome: document.getElementById('preview-nome-empresa'),
+                documento: document.getElementById('preview-documento'),
+                endereco: document.getElementById('preview-endereco'),
+                telefone: document.getElementById('preview-telefone')
+            }
+        },
+        empresa: {
+            nomeDisplay: document.getElementById('nome-empresa-display'),
+            mensagem: document.getElementById('mensagem-empresa'),
+            relatorio: {
+                nome: document.getElementById('relatorio-empresa-nome'),
+                documento: document.getElementById('relatorio-empresa-documento'),
+                endereco: document.getElementById('relatorio-empresa-endereco'),
+                telefone: document.getElementById('relatorio-empresa-telefone')
+            },
+            preview: {
+                nome: document.getElementById('preview-nome-empresa'),
+                documento: document.getElementById('preview-documento'),
+                endereco: document.getElementById('preview-endereco'),
+                telefone: document.getElementById('preview-telefone')
+            }
         }
     };
 
-    inicializar();
-    function inicializar() {
-        definirDatasPadrao();
-        conectarEventos();
-        garantirEstruturas();
-        renderizarTudo();
+    // Conectar eventos de formulário de configurações
+    function conectarEventosConfiguracoes() {
+        if (elements.configuracoes.form) {
+            elements.configuracoes.form.addEventListener('submit', onSubmitConfiguracoes);
+        }
+        if (elements.configuracoes.voltar) {
+            elements.configuracoes.voltar.addEventListener('click', () => mostrarSecao('dashboard'));
+        }
+        if (elements.configuracoes.nome) {
+            elements.configuracoes.nome.addEventListener('input', atualizarPreviewEmpresa);
+        }
+        if (elements.configuracoes.documento) {
+            elements.configuracoes.documento.addEventListener('input', atualizarPreviewEmpresa);
+        }
+        if (elements.configuracoes.endereco) {
+            elements.configuracoes.endereco.addEventListener('input', atualizarPreviewEmpresa);
+        }
+        if (elements.configuracoes.telefone) {
+            elements.configuracoes.telefone.addEventListener('input', atualizarPreviewEmpresa);
+        }
     }
 
-    // Limpar timeouts quando a página for fechada
+    inicializar();
+    function inicializar() {
+        state = {
+            produtos: carregarColecao('produtos').map(normalizarProduto),
+            entradas: carregarColecao('entradas').map(normalizarEntrada),
+            vendas: carregarColecao('vendas').map(normalizarVenda),
+            empresa: carregarEmpresa()
+        };
+        definirDatasPadrao();
+        conectarEventos();
+        conectarEventosConfiguracoes();
+        garantirEstruturas();
+        renderizarTudo();
+        preencherFormularioEmpresa();
+        atualizarEstadoConfiguracao();
+    }
+
+    function carregarEmpresa() {
+        try {
+            const bruto = localStorage.getItem(STORAGE_KEYS.empresa);
+            if (!bruto) return obterEmpresaPadrao();
+            const dados = JSON.parse(bruto);
+            return normalizarEmpresa(dados);
+        } catch (erro) {
+            console.error('Erro ao carregar dados da empresa', erro);
+            return obterEmpresaPadrao();
+        }
+    }
+
+    function salvarEmpresa(dados) {
+        try {
+            localStorage.setItem(STORAGE_KEYS.empresa, JSON.stringify(dados));
+        } catch (erro) {
+            console.error('Erro ao salvar dados da empresa', erro);
+            mostrarToast('NÃ£o foi possÃ­vel salvar os dados da empresa.', 'alert');
+        }
+    }
+
+    function obterEmpresaPadrao() {
+        return {
+            nome: '',
+            documento: '',
+            endereco: '',
+            telefone: ''
+        };
+    }
+
+    function normalizarEmpresa(item = {}) {
+        return {
+            nome: (item.nome || '').toString().trim(),
+            documento: (item.documento || '').toString().trim(),
+            endereco: (item.endereco || '').toString().trim(),
+            telefone: (item.telefone || '').toString().trim()
+        };
+    }
+
+    // Limpar timeouts quando a pagina for fechada
     window.addEventListener('beforeunload', () => {
         if (buscaProdutoTimeout) {
             clearTimeout(buscaProdutoTimeout);
@@ -156,7 +255,7 @@
             }
             elements.relatorioEstoque.content.focus();
             window.print();
-            // Restaurar aria-hidden e inert após a impressão
+            // Restaurar aria-hidden e inert apÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³s a impressÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o
             setTimeout(() => {
                 if (overlay) {
                     overlay.setAttribute('aria-hidden', 'true');
@@ -175,7 +274,7 @@
             elements.relatorioEstoque.content.focus();
         });
 
-        // Adicionar evento para fechar o overlay do relatório de estoque
+        // Adicionar evento para fechar o overlay do relatorio de estoquerelatÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³rio de estoque
         const fecharBtn = document.getElementById('fechar-relatorio-estoque');
         if (fecharBtn) {
             fecharBtn.addEventListener('click', () => {
@@ -187,7 +286,7 @@
             });
         }
 
-        // Adicionar evento para o botão de imprimir na visualização
+        // Adicionar evento para o botÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o de imprimir na visualizaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o
         const imprimirVisualizacaoBtn = document.getElementById('imprimir-relatorio-estoque-visualizacao');
         if (imprimirVisualizacaoBtn) {
             imprimirVisualizacaoBtn.addEventListener('click', () => {
@@ -273,7 +372,7 @@
             clearTimeout(buscaProdutoTimeout);
         }
 
-        // Busca imediata para resposta mais rápida
+        // Busca imediata para resposta mais rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡pida
         const dados = await buscarDadosProdutoPorCodigo(somenteDigitos);
         if (!dados || !dados.nome) {
             return;
@@ -373,7 +472,7 @@
         } catch (erro) {
             const requisicaoAbortada = controlador && controlador.signal && controlador.signal.aborted;
             if (!requisicaoAbortada && typeof console !== 'undefined' && typeof console.debug === 'function') {
-                console.debug('Busca silenciosa por código de barras falhou.', erro);
+                console.debug('Busca silenciosa por cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³digo de barras falhou.', erro);
             }
             return null;
         } finally {
@@ -386,6 +485,12 @@
         }
     }
     function mostrarSecao(sectionId) {
+        const precisaConfiguracao = !empresaConfigurada();
+        if (precisaConfiguracao && sectionId !== 'configuracoes') {
+            mostrarToast('Cadastre os dados da empresa para continuar.', 'alert');
+            sectionId = 'configuracoes';
+        }
+
         elements.navLinks.forEach(btn => {
             const ativa = btn.dataset.section === sectionId;
             btn.classList.toggle('active', ativa);
@@ -410,6 +515,10 @@
             agendarFocoLeitor(80);
         } else {
             cancelarFocoLeitor();
+        }
+
+        if (sectionId === 'configuracoes' && elements.configuracoes && elements.configuracoes.nome) {
+            elements.configuracoes.nome.focus();
         }
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -463,8 +572,8 @@
         let valorTotalEstoque = 0;
         let lucroBrutoEstimado = 0;
 
-        // Para este relatório, vamos calcular para o período completo (desde o início)
-        // Calculando a data mais antiga entre todas as movimentações
+        // Para este relatÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³rio, vamos calcular para o perÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­odo completo (desde o inÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­cio)
+        // Calculando a data mais antiga entre todas as movimentaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âµes
         const todasMovimentacoes = [...state.entradas, ...state.vendas];
         let dataInicial = new Date();
         let dataFinal = new Date(0);
@@ -492,7 +601,7 @@
             const todasEntradas = state.entradas.filter(entrada => entrada.produtoId === item.produto?.id);
             const todasVendas = state.vendas.filter(venda => venda.produtoId === item.produto?.id);
 
-            // Calculando saldos considerando todo o histórico
+            // Calculando saldos considerando todo o histÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³rico
             const entradasAnteriores = todasEntradas
                 .filter(entrada => entrada.data < dataInicialStr)
                 .reduce((total, entrada) => total + entrada.quantidade, 0);
@@ -501,7 +610,7 @@
                 .reduce((total, venda) => total + venda.quantidade, 0);
             const saldoInicial = item.produto ? (entradasAnteriores - saidasAnteriores) : 0;
 
-            // Movimentações no período
+            // MovimentaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âµes no perÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­odo
             const entradasPeriodo = todasEntradas
                 .filter(entrada => entrada.data >= dataInicialStr && entrada.data <= dataFinalStr)
                 .reduce((total, entrada) => total + entrada.quantidade, 0);
@@ -532,7 +641,209 @@
         elements.relatorioEstoque.lucroBrutoEstoque.textContent = moeda.format(lucroBrutoEstimado);
         elements.relatorioEstoque.dataRelatorio.textContent = `${formatarDataSimples(dataInicialStr)} a ${formatarDataSimples(dataFinalStr)}`;
     }
+
+    function aplicarDadosEmpresa() {
+        const empresa = state.empresa || obterEmpresaPadrao();
+        const configurada = empresaConfigurada();
+        const nomeEmpresa = obterNomeEmpresa();
+
+        if (elements.empresa?.nomeDisplay) {
+            elements.empresa.nomeDisplay.textContent = nomeEmpresa;
+        }
+
+        if (elements.empresa?.mensagem) {
+            elements.empresa.mensagem.textContent = configurada
+                ? 'Sistema pronto para uso. Utilize o menu para navegar.'
+                : 'Cadastre os dados da empresa para personalizar o PDV.';
+        }
+
+        if (elements.empresa?.relatorio?.nome) {
+            elements.empresa.relatorio.nome.textContent = nomeEmpresa;
+        }
+
+        const documentoLinha = configurada ? obterLinhaDocumento(empresa.documento) : '';
+        const enderecoLinha = configurada ? obterLinhaEndereco(empresa.endereco) : '';
+        const telefoneLinha = configurada ? obterLinhaTelefone(empresa.telefone) : '';
+        definirLinhaInformacao(elements.empresa?.relatorio?.documento, documentoLinha);
+        definirLinhaInformacao(elements.empresa?.relatorio?.endereco, enderecoLinha);
+        definirLinhaInformacao(elements.empresa?.relatorio?.telefone, telefoneLinha);
+    }
+
+    function atualizarPreviewEmpresa() {
+        if (!elements.empresa?.preview) {
+            return;
+        }
+        const dadosFormulario = obterDadosEmpresaDoFormulario();
+        const preview = elements.empresa.preview;
+
+        if (preview.nome) {
+            preview.nome.textContent = dadosFormulario.nome || 'PDV Simples';
+        }
+
+        definirLinhaInformacao(preview.documento, obterLinhaDocumento(dadosFormulario.documento));
+        definirLinhaInformacao(preview.endereco, obterLinhaEndereco(dadosFormulario.endereco));
+        definirLinhaInformacao(preview.telefone, obterLinhaTelefone(dadosFormulario.telefone));
+    }
+
+    function obterDadosEmpresaDoFormulario() {
+        if (!elements.configuracoes || !elements.configuracoes.form) {
+            return normalizarEmpresa(state.empresa);
+        }
+        return normalizarEmpresa({
+            nome: elements.configuracoes.nome?.value ?? '',
+            documento: elements.configuracoes.documento?.value ?? '',
+            endereco: elements.configuracoes.endereco?.value ?? '',
+            telefone: elements.configuracoes.telefone?.value ?? ''
+        });
+    }
+
+    function preencherFormularioEmpresa() {
+        if (!elements.configuracoes || !elements.configuracoes.form) {
+            return;
+        }
+        const dados = state.empresa || obterEmpresaPadrao();
+        if (elements.configuracoes.nome) {
+            elements.configuracoes.nome.value = dados.nome || '';
+        }
+        if (elements.configuracoes.documento) {
+            elements.configuracoes.documento.value = dados.documento || '';
+        }
+        if (elements.configuracoes.endereco) {
+            elements.configuracoes.endereco.value = dados.endereco || '';
+        }
+        if (elements.configuracoes.telefone) {
+            elements.configuracoes.telefone.value = dados.telefone || '';
+        }
+        atualizarPreviewEmpresa();
+    }
+
+    function atualizarEstadoConfiguracao() {
+        const configurada = empresaConfigurada();
+
+        elements.navLinks.forEach(btn => {
+            const isConfiguracoes = btn.dataset.section === 'configuracoes';
+            if (isConfiguracoes) {
+                if (configurada) {
+                    delete btn.dataset.alert;
+                } else {
+                    btn.dataset.alert = 'true';
+                }
+                btn.disabled = false;
+            } else {
+                btn.disabled = !configurada;
+                if (!configurada) {
+                    btn.classList.remove('active');
+                    btn.removeAttribute('aria-current');
+                }
+            }
+        });
+
+        elements.quickActions.forEach(btn => {
+            btn.disabled = !configurada;
+        });
+
+        if (elements.configuracoes?.voltar) {
+            elements.configuracoes.voltar.disabled = !configurada;
+        }
+
+        if (!configurada) {
+            atualizarFeedbackConfiguracoes('Informe o nome da empresa para liberar o PDV.', 'alert');
+            mostrarSecao('configuracoes');
+        } else {
+            atualizarFeedbackConfiguracoes(null);
+        }
+    }
+
+    function atualizarFeedbackConfiguracoes(mensagem = null, tipo = 'info') {
+        const feedback = elements.configuracoes?.feedback;
+        if (!feedback) {
+            return;
+        }
+        if (!mensagem) {
+            feedback.textContent = '';
+            feedback.hidden = true;
+            feedback.removeAttribute('data-status');
+            return;
+        }
+        feedback.textContent = mensagem;
+        feedback.dataset.status = tipo;
+        feedback.hidden = false;
+    }
+
+    function onSubmitConfiguracoes(event) {
+        event.preventDefault();
+        if (!elements.configuracoes || !elements.configuracoes.form) {
+            return;
+        }
+        const dados = obterDadosEmpresaDoFormulario();
+        if (!dados.nome) {
+            atualizarFeedbackConfiguracoes('Informe o nome da empresa.', 'alert');
+            if (elements.configuracoes.nome) {
+                elements.configuracoes.nome.focus();
+            }
+            return;
+        }
+        state.empresa = dados;
+        salvarEmpresa(dados);
+        preencherFormularioEmpresa();
+        aplicarDadosEmpresa();
+        atualizarPreviewEmpresa();
+        atualizarEstadoConfiguracao();
+        atualizarFeedbackConfiguracoes('Configuracoes salvas com sucesso!', 'success');
+        mostrarToast('Dados da empresa atualizados!', 'success');
+        if (elements.configuracoes?.voltar) {
+            elements.configuracoes.voltar.focus();
+        }
+    }
+
+    function empresaConfigurada() {
+        return Boolean(state.empresa && state.empresa.nome && state.empresa.nome.trim() !== '');
+    }
+
+    function obterNomeEmpresa() {
+        return state.empresa && state.empresa.nome ? state.empresa.nome : 'PDV Simples';
+    }
+
+    function definirLinhaInformacao(elemento, texto) {
+        if (!elemento) {
+            return;
+        }
+        if (texto) {
+            elemento.textContent = texto;
+            elemento.hidden = false;
+        } else {
+            elemento.textContent = '';
+            elemento.hidden = true;
+        }
+    }
+
+    function obterLinhaDocumento(documento) {
+        const valor = (documento || '').trim();
+        if (!valor) {
+            return '';
+        }
+        const numeros = valor.replace(/\D/g, '');
+        if (numeros.length === 14) {
+            return 'CNPJ: ' + valor;
+        }
+        if (numeros.length === 11) {
+            return 'CPF: ' + valor;
+        }
+        return 'Documento: ' + valor;
+    }
+
+    function obterLinhaEndereco(endereco) {
+        const valor = (endereco || '').trim();
+        return valor ? 'Endereco: ' + valor : '';
+    }
+
+    function obterLinhaTelefone(telefone) {
+        const valor = (telefone || '').trim();
+        return valor ? 'Telefone: ' + valor : '';
+    }
+
     function renderizarTudo() {
+        aplicarDadosEmpresa();
         atualizarOpcoesProdutos();
         renderizarProdutos();
         renderizarEntradas();
@@ -883,24 +1194,24 @@
             return;
         }
 if (precoCusto < 0 || precoVenda < 0) {
-            mostrarToast('Valores negativos não são permitidos.', 'alert');
+            mostrarToast('Valores negativos nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o permitidos.', 'alert');
             return;
         }
         if (precoVenda < precoCusto) {
-            mostrarToast('Preço de venda está abaixo do custo.', 'alert');
+            mostrarToast('PreÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§o de venda estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ abaixo do custo.', 'alert');
         }
 
         const chave = normalizarChave(nome, unidade);
         const jaExiste = state.produtos.some(prod => normalizarChave(prod.nome, prod.unidade) === chave && prod.id !== produtoEmEdicao);
         if (jaExiste) {
-            mostrarToast('Este produto já está cadastrado.', 'alert');
+            mostrarToast('Este produto jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ cadastrado.', 'alert');
             return;
         }
 
         if (codigoBarras) {
             const codigoDuplicado = state.produtos.some(prod => normalizarCodigoBarras(prod.codigoBarras) === codigoBarras && prod.id !== produtoEmEdicao);
             if (codigoDuplicado) {
-                mostrarToast('Código de barras já utilizado em outro produto.', 'alert');
+                mostrarToast('CÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³digo de barras jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ utilizado em outro produto.', 'alert');
                 focarCampoCodigoProduto();
                 return;
             }
@@ -910,7 +1221,7 @@ if (precoCusto < 0 || precoVenda < 0) {
             const produto = state.produtos.find(p => p.id === produtoEmEdicao);
             if (!produto) {
                 produtoEmEdicao = null;
-                mostrarToast('Produto não encontrado para edição.', 'alert');
+                mostrarToast('Produto nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o encontrado para ediÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o.', 'alert');
                 return;
             }
             produto.nome = nome;
@@ -958,7 +1269,7 @@ if (precoCusto < 0 || precoVenda < 0) {
     function iniciarEdicaoProduto(id) {
         const produto = state.produtos.find(p => p.id === id);
         if (!produto) {
-            mostrarToast('Produto não encontrado.', 'alert');
+            mostrarToast('Produto nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o encontrado.', 'alert');
             return;
         }
         produtoEmEdicao = id;
@@ -984,12 +1295,12 @@ if (precoCusto < 0 || precoVenda < 0) {
     function excluirProduto(id) {
         const possuiMovimentacao = state.entradas.some(item => item.produtoId === id) || state.vendas.some(item => item.produtoId === id);
         if (possuiMovimentacao) {
-            mostrarToast('Não é possível excluir: produto com movimentações registradas.', 'alert');
+            mostrarToast('NÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© possÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­vel excluir: produto com movimentaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âµes registradas.', 'alert');
             return;
         }
         const produto = state.produtos.find(p => p.id === id);
         if (!produto) {
-            mostrarToast('Produto já removido.', 'alert');
+            mostrarToast('Produto jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ removido.', 'alert');
             return;
         }
         const confirmacao = window.confirm(`Excluir o produto "${produto.nome}"?`);
@@ -1014,13 +1325,13 @@ if (precoCusto < 0 || precoVenda < 0) {
             return;
         }
         if (quantidade <= 0) {
-            mostrarToast('Informe uma quantidade válida.', 'alert');
+            mostrarToast('Informe uma quantidade vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lida.', 'alert');
             return;
         }
 
         const produto = state.produtos.find(p => p.id === produtoId);
         if (!produto) {
-            mostrarToast('Produto inválido.', 'alert');
+            mostrarToast('Produto invÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lido.', 'alert');
             return;
         }
 
@@ -1060,20 +1371,20 @@ if (precoCusto < 0 || precoVenda < 0) {
         }
         const produto = state.produtos.find(p => p.id === produtoId);
         if (!produto) {
-            mostrarToast('Produto inválido.', 'alert');
+            mostrarToast('Produto invÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lido.', 'alert');
             return { ok: false, motivo: 'produto' };
         }
 
         const quantidadeNormalizada = arredondar(quantidade);
         if (!Number.isFinite(quantidadeNormalizada) || quantidadeNormalizada <= 0) {
-            mostrarToast('Informe uma quantidade válida.', 'alert');
+            mostrarToast('Informe uma quantidade vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lida.', 'alert');
             return { ok: false, motivo: 'quantidade' };
         }
 
         const estoqueMapa = calcularEstoqueDetalhado();
         const estoqueAtual = estoqueMapa.get(produtoId)?.quantidade || 0;
         if (quantidadeNormalizada > estoqueAtual) {
-            mostrarToast(`Estoque insuficiente. Disponível: ${estoqueAtual}`, 'alert');
+            mostrarToast(`Estoque insuficiente. DisponÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­vel: ${estoqueAtual}`, 'alert');
             return { ok: false, motivo: 'estoque', estoqueAtual };
         }
 
@@ -1159,7 +1470,7 @@ if (precoCusto < 0 || precoVenda < 0) {
 
         const produto = buscarProdutoPorCodigo(codigo);
         if (!produto) {
-            mostrarToast(`Produto não encontrado para o código ${codigo}.`, 'alert');
+            mostrarToast(`Produto nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o encontrado para o cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³digo ${codigo}.`, 'alert');
             agendarFocoLeitor(140);
             return;
         }
@@ -1180,7 +1491,7 @@ if (precoCusto < 0 || precoVenda < 0) {
         }
 
         const restanteTexto = quantidadeFmt.format(Math.max(resultado.estoqueRestante, 0));
-        const mensagem = `Venda rápida: ${produto.nome}. Restante: ${restanteTexto}.`;
+        const mensagem = `Venda rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡pida: ${produto.nome}. Restante: ${restanteTexto}.`;
         mostrarToast(mensagem, 'success');
 
         elements.vendaProduto.value = produto.id;
@@ -1205,7 +1516,7 @@ if (precoCusto < 0 || precoVenda < 0) {
                     elements.leitorCodigo.select();
                 }
             } catch (erro) {
-                console.warn('Não foi possível focar o leitor de código.', erro);
+                console.warn('NÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o foi possÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­vel focar o leitor de cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³digo.', erro);
             }
         }, 0);
     }
@@ -1378,11 +1689,30 @@ if (precoCusto < 0 || precoVenda < 0) {
             { titulo: 'Itens com estoque baixo', valor: itensBaixoEstoque.toString() }
         ]);
 
+        const nomeEmpresa = obterNomeEmpresa();
+        const documentoEmpresa = obterLinhaDocumento(state.empresa?.documento);
+        const enderecoEmpresa = obterLinhaEndereco(state.empresa?.endereco);
+        const telefoneEmpresa = obterLinhaTelefone(state.empresa?.telefone);
+        const empresaBlocoPartes = ['<strong>' + escapeHtml(nomeEmpresa) + '</strong>'];
+        if (documentoEmpresa) {
+            empresaBlocoPartes.push('<span>' + escapeHtml(documentoEmpresa) + '</span>');
+        }
+        if (enderecoEmpresa) {
+            empresaBlocoPartes.push('<span>' + escapeHtml(enderecoEmpresa) + '</span>');
+        }
+        if (telefoneEmpresa) {
+            empresaBlocoPartes.push('<span>' + escapeHtml(telefoneEmpresa) + '</span>');
+        }
+        const empresaBloco = empresaBlocoPartes.join('\n        ');
+
         const estilo = `
             <style>
                 body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f1a09; background: #fffdf2; padding: 32px; }
                 h1 { font-size: 26px; margin-bottom: 6px; }
                 .generated-date { color: #6f6652; margin-bottom: 24px; }
+                .company-block { margin-bottom: 18px; display: flex; flex-direction: column; gap: 4px; }
+                .company-block strong { font-size: 1.2rem; }
+                .company-block span { font-size: 0.85rem; color: #6f6652; }
                 .summary { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 28px; }
                 .summary-item { background: #fff8c7; border: 1px solid #f4e4a5; border-radius: 12px; padding: 12px 18px; min-width: 180px; }
                 .summary-item span { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6f6652; margin-bottom: 6px; }
@@ -1402,12 +1732,15 @@ if (precoCusto < 0 || precoVenda < 0) {
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Relatório PDV Simples</title>
+<title>Relatorio - ${escapeHtml(nomeEmpresa)}</title>
 ${estilo}
 </head>
 <body>
-    <h1>Relatório geral - PDV Simples</h1>
-    <p class="generated-date">Gerado em ${escapeHtml(dataFmt.format(agora))} às ${escapeHtml(horaFmt.format(agora))}</p>
+    <h1>Relatorio geral - ${escapeHtml(nomeEmpresa)}</h1>
+    <div class="company-block">
+        ${empresaBloco}
+    </div>
+    <p class="generated-date">Gerado em ${escapeHtml(dataFmt.format(agora))} ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â s ${escapeHtml(horaFmt.format(agora))}</p>
     ${resumoHtml}
     ${gerarTabelaExcel('Estoque atual', ['Produto', 'Unidade', 'Quantidade', 'Valor em estoque', 'Status'], estoqueLinhas, estoqueRodape)}
     ${gerarTabelaExcel('Entradas registradas', ['Data', 'Produto', 'Quantidade', 'Valor'], entradasLinhas, entradasRodape)}
@@ -1416,7 +1749,7 @@ ${estilo}
 </html>`;
 
         downloadArquivo(html, `pdv-simples-relatorio-${dataArquivo}.xls`, 'application/vnd.ms-excel');
-        mostrarToast('Relatório em Excel exportado!', 'success');
+        mostrarToast('RelatÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³rio em Excel exportado!', 'success');
     }
 
     function exportarBackupJson() {
@@ -1427,14 +1760,14 @@ ${estilo}
             },
             produtos: state.produtos,
             entradas: state.entradas,
-            vendas: state.vendas
+            vendas: state.vendas,
+            empresa: normalizarEmpresa(state.empresa)
         };
         const conteudo = JSON.stringify(backup, null, 2);
         const data = obterDataHoje().replace(/-/g, '');
         downloadArquivo(conteudo, `pdv-simples-backup-${data}.json`);
         mostrarToast('Backup exportado com sucesso!', 'success');
     }
-
     function importarBackup(event) {
         const arquivo = event.target.files?.[0];
         if (!arquivo) {
@@ -1445,17 +1778,21 @@ ${estilo}
             try {
                 const dados = JSON.parse(e.target.result);
                 if (!dados || !Array.isArray(dados.produtos) || !Array.isArray(dados.entradas) || !Array.isArray(dados.vendas)) {
-                    throw new Error('Estrutura inválida');
+                    throw new Error('Estrutura invalida');
                 }
                 state.produtos = dados.produtos.map(normalizarProduto);
                 state.entradas = dados.entradas.map(normalizarEntrada);
                 state.vendas = dados.vendas.map(normalizarVenda);
+                state.empresa = dados.empresa ? normalizarEmpresa(dados.empresa) : obterEmpresaPadrao();
+                salvarEmpresa(state.empresa);
                 garantirEstruturas();
                 renderizarTudo();
+                preencherFormularioEmpresa();
+                atualizarEstadoConfiguracao();
                 mostrarToast('Backup importado!', 'success');
             } catch (erro) {
                 console.error(erro);
-                mostrarToast('Não foi possível importar o backup.', 'alert');
+                mostrarToast('Nao foi possivel importar o backup.', 'alert');
             } finally {
                 event.target.value = '';
             }
@@ -1582,7 +1919,7 @@ ${estilo}
             localStorage.setItem(STORAGE_KEYS[chave], JSON.stringify(dados));
         } catch (erro) {
             console.error('Erro ao salvar dados', chave, erro);
-            mostrarToast('Não foi possível salvar os dados.', 'alert');
+            mostrarToast('NÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o foi possÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­vel salvar os dados.', 'alert');
         }
     }
 
